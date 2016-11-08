@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8 />
+  <title>nBody Simulation</title>
+
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/SLOrange-theme/jquery-ui-1.10.4.custom.min.css" rel="stylesheet" />
+  <link href="css/layout.css" rel="stylesheet">
+
+  <script src="js/modernizr.custom.min.11515.js"></script>
+  <script src="js/jquery-1.11.0.min.js"></script>
+  <script src="js/jquery-ui-1.10.4.custom.min.js"></script>    <!-- Load BEFORE Bootstrap JS or causes unexpected issues -->
+  <!--<script src="js/bootstrap-3.1.1.min.js"></script> - Bootstrap JS Removed: Breaks JQueryUI button events. Also requires JQuery but breaks JQuery UI: Irony?? -->
+  <script src="js/transition.js"></script>  <!-- Bootstrap Helper file (included in 3.1.1, used here when main library is excluded) -->
+  <script src="js/collapse.js"></script>  <!-- Bootstrap Helper file (included in 3.1.1, used here when main library is excluded) -->
+  <script src="js/jquery.loadTemplate-1.4.1.min.js"></script>
+  <script src="js/nbody.js"></script>
+</head>
+
+<body>  <!--  Use the mouse to grab & move the bodies during the simulation -->
+
+<!-- Canvas -->
+<div class="row">
+  <div class="col-md-12" id="SimulationFrame">
+      <canvas class="SimulationWindow" id="canvas">Sorry! Canvas could not load on this browser!</canvas>
+  </div>
+</div>
+
+<!-- Control Buttons -->
+<div class="row">
+  <div class="col-md-12">
+    <div id="controlButtons" class="center">  <!-- Buttons Control -->
+      <button type="button" class="btn btn-default btn-md width-one-third" id="play">
+          Play   <span class="glyphicon glyphicon-play"></span></button>
+      <button type="button" class="btn btn-default btn-md width-one-third" id="pause">
+          Pause  <span class="glyphicon glyphicon-pause"></span></button>
+      <button type="button" class="btn btn-default btn-md width-one-third" id="step">
+          Step   <span class="glyphicon glyphicon-step-forward"></span></button>
+      <button type="button" class="btn btn-default btn-md btn-warning width-one-third" id="reset">
+          Reset  <span class="glyphicon glyphicon-repeat"></span></button>  
+    </div>
+  </div>
+</div>
+
+
+<!-- Panels -->
+<div class="panel-group" id="accordion">
+
+  <div class="panel panel-default">
+    <div class="panel-heading collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+      <span class="glyphicon glyphicon-cog"></span> Simulation Controls
+    </div>
+
+    <div id="collapseOne" class="panel-collapse collapse">
+    <div class="panel-body">
+
+      <div class="row sliderContainer">
+        <div class="col-xs-6 sliderUI">
+              <label for="simSpeed">
+                <span class="glyphicon glyphicon-send"></span> Speed:</label>
+              <input type="text" value="Medium" id="simSpeed" />
+              <div id="slider-speed" class="sliderSmall"></div>
+        </div>
+        <div class="col-xs-6 sliderUI">
+              <label for="simResolution">
+                <span class="glyphicon glyphicon-screenshot"></span> Accuracy:</label>
+              <input type="text" value="Medium" id="simResolution" />
+              <div id="slider-resolution" class="sliderSmall"></div>
+        </div>
+      </div>
+
+      <div class="row sliderContainer">
+        <div class="col-xs-6 sliderUI">
+              <label for="simFriction"><span class="glyphicon glyphicon-record"></span> Friction Coefficient:</label>
+              <input type="text" value="Medium" id="simFriction" />
+              <div id="slider-friction" class="sliderSmall"></div>
+        </div>
+        <div class="col-xs-6 sliderUI">
+              <label for="simGrav"><span class="glyphicon glyphicon-magnet"></span> Gravitational Constant:</label>
+              <input type="text" value="Medium" id="simGrav" />
+              <div id="slider-grav" class="sliderSmall"></div>
+        </div>
+      </div>
+
+
+      <div class="row buttonRow">
+        <div class="col-sm-4">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-sound-stereo"></span> Boundary:</p>
+          <div id="radioBoundary">
+              <input type="radio" name="boundary" id="boundaryNone" onclick="set_boundary(BOUNDARY_TYPE_NONE)">
+                <label for="boundaryNone"> None </label>
+              <input type="radio" name="boundary" id="boundaryBounce" onclick="set_boundary(BOUNDARY_TYPE_BOUNCE)" checked>
+                <label for="boundaryBounce"> Bounce </label>
+              <input type="radio" name="boundary" id="boundaryTorus" onclick="set_boundary(BOUNDARY_TYPE_TORUS)">
+                <label for="boundaryTorus"> Torus </label>
+          </div>
+
+        </div>
+        <div class="col-sm-5">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-resize-small"></span> Collisions:</p>
+          <div id="radioCollisions">
+              <input type="radio" name="collisions" id="collisions_off" onclick="set_collisions(COLLISIONS_OFF)">
+                <label for="collisions_off"> Overlap </label>
+              <input type="radio" name="collisions" id="collisions_on" onclick="set_collisions(COLLISIONS_MERGE)">
+                <label for="collisions_on"> Merge </label>
+              <input type="radio" name="collisions" id="collisions_merge" onclick="set_collisions(COLLISIONS_BOUNCE)" checked>
+                <label for="collisions_merge"> Elastic Bounce </label>
+          </div>
+
+        </div>
+        <div class="col-sm-3">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-transfer"></span> Reverse Gravity:</p>
+          <div id="radioReverseGravity">
+              <input type="radio" name="reverse" id="reverse_on" onclick="set_reverse_gravity(true)"> 
+                <label for="reverse_on"> On </label>
+              <input type="radio" name="reverse" id="reverse_off" onclick="set_reverse_gravity(false)" checked>
+                <label for="reverse_off"> Off </label>
+          </div>
+
+        </div>
+      </div> <!-- /Row -->
+
+    </div> <!-- /Panel Body -->
+    </div> <!-- /Panel Collapse -->
+  </div> <!-- /Panel -->
+
+
+
+  <div class="panel panel-default">
+    <div class="panel-heading collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo">
+      <span class="glyphicon glyphicon-eye-open"></span> Visual Controls
+    </div>
+
+    <div id="collapseTwo" class="panel-collapse collapse">
+    <div class="panel-body">
+
+      <div class="row sliderContainer">
+        <div class="col-xs-6 sliderUI">
+              <label for="simCanvasSize">
+                <span class="glyphicon glyphicon-resize-full"></span> Simulation Window Size: (Requires Restart)</label>
+              <input type="text" value="Auto" id="simCanvasSize" />
+              <div id="slider-canvasSize" class="sliderSmall"></div>
+        </div>
+
+        <div class="col-xs-6 sliderUI">
+              <label for="simBodySize">
+                <span class="glyphicon glyphicon-globe"></span> n-Body Size: (Requires Restart)</label>
+              <input type="text" value="Default" id="simBodySize" />
+              <div id="slider-bodySize" class="sliderSmall"></div>
+        </div>
+      </div> <!-- /Row -->
+
+      <div class="row buttonRow">
+        <div class="col-sm-3">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-minus"></span> Trails:</p>
+          <div id="radioTrails">
+              <input type="radio" name="trails" id="trailsOff" onclick="set_trails(0)"> 
+                <label for="trailsOff"> Off </label>
+              <input type="radio" name="trails" id="trailsShort" onclick="set_trails(.2)" checked> 
+                <label for="trailsShort"> Short </label>
+              <input type="radio" name="trails" id="trailsLong" onclick="set_trails(.009)"> 
+                <label for="trailsLong"> Long </label>
+              <input type="radio" name="trails" id="trailsInfinite" onclick="set_trails(-1)"> 
+                <label for="trailsInfinite"> Infinite </label>
+          </div>
+
+        </div>
+        <div class="col-sm-3">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-th"></span> Grid:</p>
+          <div id="radioGrid"> <!-- class="btn-group" data-toggle="buttons"> -->
+              <input type="radio" name="grid" id="gridOn" onclick="set_gridlines(true)"> 
+                <label for="gridOn"> Show </label>
+              <input type="radio" name="grid" id="gridOff" onclick="set_gridlines(false)" checked>
+                <label for="gridOff"> Hide </label>
+          </div>
+
+        </div>
+        <div class="col-sm-3">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-asterisk"></span> Barycenters:</p>
+          <div id="radioBarycenters">
+              <input type="radio" name="barycenters" id="barycenters_on" onclick="set_barycenters(true)"> 
+                <label for="barycenters_on"> Show </label>
+              <input type="radio" name="barycenters" id="barycenters_off" onclick="set_barycenters(false)" checked>
+                <label for="barycenters_off"> Hide </label>
+          </div>
+
+        </div>
+        <div class="col-sm-3">
+
+        <p class="buttonLabel">
+          <span class="glyphicon glyphicon-adjust"></span> Night Mode:</p>
+          <div id="radioNightMode">
+              <input type="radio" name="nightmode" id="day_on" onclick="setDay()" checked> 
+                <label for="day_on"> Day </label>
+              <input type="radio" name="nightmode" id="day_off" onclick="setNight()">
+                <label for="day_off"> Night </label>
+          </div>
+
+        </div>
+      </div> <!-- /Row -->
+
+    </div> <!-- /Panel Body -->
+    </div> <!-- /Panel Collapse -->
+  </div> <!-- /Panel -->
+
+
+
+  <div class="panel panel-default">
+    <div class="panel-heading collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapseThree">
+      <span class="glyphicon glyphicon-refresh"></span> Load New Scenario
+    </div>
+
+    <div id="collapseThree" class="panel-collapse collapse">
+    <div class="panel-body">
+
+      <div class="row">
+        <div class="col-sm-4 col-sm-offset-0 text-center">
+
+        <p class="buttonLabel">Orbital: </p>
+          <ul id="menuScenarios2" style="max-width: 200px; margin: 0 auto;">
+            <li><a href="#" onclick="read_world('one_moon')">One Moon</a></li>
+            <li><a href="#" onclick="read_world('binary_stars')">Binary Stars</a></li>
+            <li><a href="#" onclick="read_world('fourbit')">Fourbit</a></li>
+            <li><a href="#" onclick="read_world('ringworld')">Ringworld</a></li>
+            <li><a href="#" onclick="read_world('big_crunch')">Big Crunch</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-4 text-center">
+
+        <p class="buttonLabel ceny">Static: </p>
+          <ul id="menuScenarios" style="max-width: 200px; margin: 0 auto;">
+            <li><a href="#" onclick="read_world('justin1')">Justin One</a></li>
+            <li><a href="#" onclick="read_world('justin2')">Justin Two</a></li>
+            <li><a href="#" onclick="read_world('justin3')">Justin Three</a></li>
+            <li><a href="#" onclick="grid_world()">Grid World</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-4 text-center">
+
+        <p class="buttonLabel">Random: </p>
+          <ul id="menuScenarios3" style="max-width: 200px; margin: 0 auto;">
+            <li><a href="#" onclick="random_world()">Random World</a></li>
+            <li><a href="#" onclick="random_static_world()">Random Static</a></li>
+          </ul>
+        </div>
+      </div> <!-- /Row -->
+
+    </div> <!-- /Panel Body -->
+    </div> <!-- /Panel Collapse -->
+  </div> <!-- /Panel -->
+
+
+
+  <div class="panel panel-default">
+    <div class="panel-heading" data-toggle="collapse" data-parent="#accordion" href="#collapseFour">
+      <span class="glyphicon glyphicon-list-alt"></span> n-Body Attributes
+    </div>
+
+    <div id="collapseFour" class="panel-collapse collaps in">
+    <div class="panel-body">
+    <table id="nbodyTable" class="table table-hover table-striped center-text">
+      <thead>
+        <tr>
+          <th class="center-text">#</th>
+          <th class="center-text">Color</th>
+          <th class="center-text">Position</th>
+          <th class="center-text">Velocity</th>
+          <th class="center-text">Mass</th>
+          <th class="center-text">Radius</th>
+          <th class="center-text">Distance Traveled</th>
+          <th class="center-text">Modify</th>
+          <th class="center-text">Remove</th>
+        </tr>
+      </thead>
+      <tbody id="nbodyTableBody">
+        <!-- Append nBodies Here-->
+      </tbody>
+    </table>
+
+    <!-- Template for: 
+      <Body 0 - Color - Position: (46172.00, -42298.00) - Velocity: (2.90, -2.20) - Mass: 1.2e+14 - Radius: 1788 - Forces: (0, 0) - Distance Traveled: 0.0000> -->
+
+    <script type="text/html" id="nbodyTemplate">
+      <tr>
+        <td data-content="id"></td>
+        <td data-content="color" id="unsetColor" class="colorTD"></td>
+        <td data-content="position"></td>
+        <td data-content="velocity"></td>
+        <td data-content="mass"></td>
+        <td data-content="radius"></td>
+        <td data-content="distance_traveled"></td>
+        <td data-content="modifyEdit"></td>
+        <td data-content="modifyDelete"></td>
+      </tr>
+    </script>
+
+    </div> <!-- /Panel Body -->
+    </div> <!-- /Panel Collapse -->
+  </div> <!-- /Panel -->
+
+</div> <!-- /Panel Group-->
+
+
+  <!-- Modal to Edit individal bodies (normally hidden) -->
+  <div id="dialog-confirm" title="Modify Body">
+    <form role="form" id="bodyModal" class="text-center">
+      
+      <br/>
+        <div class="row">
+          <div class="col-xs-12">
+            <div id="modalBodyBox"> <!--Circle--> </div>
+        </div>        
+      </div>
+
+      <br/>
+
+      <div class="form-group">
+        <label for="bodyMass">Mass</label>
+        <div class="row">
+          <div class="col-xs-10 col-md-offset-1">
+            <input type="text" class="form-control text-center" id="bodyMass" placeholder="Mass">
+          </div>
+        </div>        
+      </div>
+
+      <br/>
+
+      <div class="form-group">
+        <div class="row">
+          <div class="col-xs-6">
+            <label for="bodyPosX">Position, x-Coordinate</label>
+          </div>
+          <div class="col-xs-6">
+            <label for="bodyPosY">Position, y-Coordinate</label>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-xs-1 bigText">
+            (
+          </div>
+          <div class="col-xs-4" style="min-width: 100px;">
+            <input type="text" class="form-control text-center" id="bodyPosX" placeholder="x-Coordinate">
+          </div>
+          <div class="col-xs-2 bigText">
+            ,
+          </div>
+          <div class="col-xs-4" style="min-width: 100px;">  
+            <input type="text" class="form-control text-center" id="bodyPosY" placeholder="y-Coordinate">
+          </div>
+          <div class="col-xs-1 bigText">
+            )
+          </div>
+        </div>
+      </div>
+      
+      <br/>
+
+      <div class="form-group">
+        <div class="row">
+          <div class="col-xs-6">
+            <label for="bodyVelX">Horizontal Velocity</label>
+          </div>
+          <div class="col-xs-6">
+            <label for="bodyVelY">Vertical Velocity</label>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-xs-1 bigText">
+            (
+          </div>
+          <div class="col-xs-4" style="min-width: 100px;">
+            <input type="text" class="form-control text-center" id="bodyVelX" placeholder="x-Velocity">
+          </div>
+          <div class="col-xs-2 bigText">
+            ,
+          </div>
+          <div class="col-xs-4" style="min-width: 100px;">  
+            <input type="text" class="form-control text-center" id="bodyVelY" placeholder="y-Velocity">
+          </div>
+          <div class="col-xs-1 bigText">
+            )
+          </div>
+        </div>
+      </div>
+    
+    </form>
+  </div>
+
+
+  <!-- Import the page scripts last - need to first load all the page elements to the DOM -->
+  <script src="js/scripts.js"></script>   <!-- Depends on nBody.js -->
+
+</body>
+</html>
